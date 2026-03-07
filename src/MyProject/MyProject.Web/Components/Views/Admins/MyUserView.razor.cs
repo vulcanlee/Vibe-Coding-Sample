@@ -1,8 +1,6 @@
-﻿using AntDesign;
-using AntDesign.TableModels;
+using AntDesign;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
-using MyProject.Business.Services;
 using MyProject.Business.Services.DataAccess;
 using MyProject.Models.AdapterModel;
 using MyProject.Models.Systems;
@@ -10,137 +8,69 @@ using MyProject.Share.Helpers;
 
 namespace MyProject.Web.Components.Views.Admins
 {
-    public partial class RoleViewView
+    public partial class MyUserView
     {
-        private readonly ILogger<RoleViewView> logger;
-        private readonly RoleViewService roleViewService;
+        private readonly ILogger<MyUserView> logger;
+        private readonly MyUserService myUserService;
         private readonly ModalService modalService;
         private readonly MessageService messageService;
         private readonly NotificationService notificationService;
-        private readonly RolePermissionService rolePermissionService;
         ITable table;
         int _pageIndex = 1;
         int _pageSize = MagicObjectHelper.PageSize;
         int _total = 0;
         string searchText = string.Empty;
-        string sortField = string.Empty;
-        string sortDirection = "None";
+        string sortField = nameof(MyUserAdapterModel.Name);
+        string sortDirection = "Ascending";
 
-        List<RoleViewAdapterModel> roleViewAdapterModels = new();
+        List<MyUserAdapterModel> myUserAdapterModels = new();
 
-        string modalTitle = "角色列表";
+        string modalTitle = "使用者列表";
         bool modalVisible = false;
-        RoleViewAdapterModel CurrentRecord = new();
+        MyUserAdapterModel CurrentRecord = new();
         public EditContext LocalEditContext { get; set; }
         bool isNewRecordMode;
 
-        public RoleViewView(ILogger<RoleViewView> logger,
-            RoleViewService roleViewService,
-            ModalService modalService, MessageService messageService, NotificationService notificationService,
-            RolePermissionService rolePermissionService)
+        public MyUserView(ILogger<MyUserView> logger,
+            MyUserService myUserService,
+            ModalService modalService, MessageService messageService, NotificationService notificationService)
         {
             this.logger = logger;
-            this.roleViewService = roleViewService;
+            this.myUserService = myUserService;
             this.modalService = modalService;
             this.messageService = messageService;
             this.notificationService = notificationService;
-            this.rolePermissionService = rolePermissionService;
         }
 
         public async Task ReloadAsync()
         {
-            DataRequestResult<RoleViewAdapterModel> dataRequestResult = await roleViewService.GetAsync(new DataRequest
+            DataRequestResult<MyUserAdapterModel> dataRequestResult = await myUserService.GetAsync(new DataRequest
             {
                 Search = searchText,
                 SortField = sortField,
-                SortDescending = sortDirection == "Descending"? true : sortDirection == "Ascending" ? false : (bool?)null ,
+                SortDescending = sortDirection == "Descending",
                 CurrentPage = _pageIndex,
                 PageSize = _pageSize,
                 Take = 0,
             });
 
-            roleViewAdapterModels = dataRequestResult.Result.ToList();
+            myUserAdapterModels = dataRequestResult.Result.ToList();
             _total = dataRequestResult.Count;
 
             StateHasChanged();
         }
 
-        async Task OnTableChange(AntDesign.TableModels.QueryModel<RoleViewAdapterModel> args)
+        async Task OnTableChange(AntDesign.TableModels.QueryModel<MyUserAdapterModel> args)
         {
             _pageIndex = args.PageIndex;
-
-            if (args.SortModel?.Any() == true)
-            {
-                var tableSortModel = GetCurrentSortModel(args.SortModel);
-                string sortValue = tableSortModel.SortDirection.ToString() ?? string.Empty;
-                string resolvedSortField = ResolveSortFieldName(tableSortModel);
-                sortDirection = sortValue;
-                sortField = resolvedSortField;
-
-                //bool isDesc = sortValue.Equals("descend", StringComparison.OrdinalIgnoreCase)
-                //      || sortValue.Equals("descending", StringComparison.OrdinalIgnoreCase)
-                //      || sortValue.Equals("desc", StringComparison.OrdinalIgnoreCase);
-                //bool isAsc = sortValue.Equals("ascend", StringComparison.OrdinalIgnoreCase)
-                //    || sortValue.Equals("ascending", StringComparison.OrdinalIgnoreCase)
-                //    || sortValue.Equals("asc", StringComparison.OrdinalIgnoreCase);
-
-                //if (isDesc)
-                //{
-                //    sortDirection = "Descending";
-                //    sortField = resolvedSortField;
-                //}
-                //else if (isAsc)
-                //{
-                //    sortDirection = "Ascending";
-                //    sortField = resolvedSortField;
-                //}
-                //else
-                //{
-                //    sortDirection = "None";
-                //    sortField = resolvedSortField;
-                //}
-            }
-            else
-            {
-                sortField = string.Empty;
-                sortDirection = "None";
-            }
 
             await ReloadAsync();
         }
 
-        private static ITableSortModel GetCurrentSortModel(IEnumerable<ITableSortModel> sortModels)
+        async Task OnSortAsync()
         {
-            return sortModels.FirstOrDefault(model => HasSortDirection(model.SortDirection))
-                ?? sortModels.Last();
-        }
-
-        private static bool HasSortDirection(SortDirection sortDirection)
-        {
-            return sortDirection == SortDirection.Ascending || sortDirection == SortDirection.Descending;
-        }
-
-        private static string ResolveSortFieldName(ITableSortModel sortModel)
-        {
-            if (string.IsNullOrWhiteSpace(sortModel.FieldName) == false)
-            {
-                return sortModel.FieldName;
-            }
-
-            object? column = sortModel.GetType().GetProperty("Column")?.GetValue(sortModel);
-            if (column is null)
-            {
-                return string.Empty;
-            }
-
-            string? columnFieldName = column.GetType().GetProperty("FieldName")?.GetValue(column)?.ToString();
-            if (string.IsNullOrWhiteSpace(columnFieldName) == false)
-            {
-                return columnFieldName;
-            }
-
-            object? dataIndex = column.GetType().GetProperty("DataIndex")?.GetValue(column);
-            return dataIndex?.ToString() ?? string.Empty;
+            _pageIndex = 1;
+            await ReloadAsync();
         }
 
         async Task OnSearchAsync()
@@ -160,17 +90,17 @@ namespace MyProject.Web.Components.Views.Admins
                 NotificationType = NotificationType.Warning,
                 Placement = NotificationPlacement.BottomRight
             });
-
         }
 
-        async Task OnEditAsync(RoleViewAdapterModel roleViewAdapterModel)
+        async Task OnEditAsync(MyUserAdapterModel myUserAdapterModel)
         {
             isNewRecordMode = false;
-            CurrentRecord = roleViewAdapterModel.Clone();
+            CurrentRecord = myUserAdapterModel.Clone();
+            CurrentRecord.Password = string.Empty;
             modalVisible = true;
         }
 
-        async Task OnDeleteAsync(RoleViewAdapterModel roleViewAdapterModel)
+        async Task OnDeleteAsync(MyUserAdapterModel myUserAdapterModel)
         {
             var ok = await modalService.ConfirmAsync(new ConfirmOptions()
             {
@@ -184,7 +114,7 @@ namespace MyProject.Web.Components.Views.Admins
 
             if (ok)
             {
-                await roleViewService.DeleteAsync(roleViewAdapterModel.Id);
+                await myUserService.DeleteAsync(myUserAdapterModel.Id);
 
                 _ = notificationService.Open(new NotificationConfig()
                 {
@@ -205,12 +135,6 @@ namespace MyProject.Web.Components.Views.Admins
         async Task OnAddAsync(bool continueOnCapturedContext)
         {
             CurrentRecord = new();
-
-            #region 針對新增的紀錄所要做的初始值設定商業邏輯
-            CurrentRecord.RolePermission = rolePermissionService
-                .InitializePermissionSetting();
-            #endregion
-
             isNewRecordMode = true;
             modalVisible = true;
         }
@@ -218,16 +142,19 @@ namespace MyProject.Web.Components.Views.Admins
         private async Task OnModalOKHandleAsync(Microsoft.AspNetCore.Components.Web.MouseEventArgs args)
         {
             #region 進行 Form Validation 檢查驗證作業
+            // 編輯模式下密碼為選填，暫時填入佔位值以通過 Required 驗證
+            string savedPassword = CurrentRecord.Password;
+            if (!isNewRecordMode && string.IsNullOrWhiteSpace(CurrentRecord.Password))
+            {
+                CurrentRecord.Password = "KEEP_EXISTING";
+            }
+
             if (LocalEditContext.Validate() == false)
             {
+                CurrentRecord.Password = savedPassword;
+
                 // 取得所有驗證失敗的錯誤訊息
                 IEnumerable<string> allErrors = LocalEditContext.GetValidationMessages();
-
-                // 取得指定欄位的錯誤訊息
-                // IEnumerable<string> fieldErrors = LocalEditContext
-                //     .GetValidationMessages(LocalEditContext.Field(nameof(CurrentRecord.Name)));
-
-                //string errorDescription = string.Join(Environment.NewLine, allErrors);
 
                 foreach (var error in allErrors)
                 {
@@ -244,6 +171,8 @@ namespace MyProject.Web.Components.Views.Admins
                 modalVisible = true;
                 return;
             }
+
+            CurrentRecord.Password = savedPassword;
             #endregion
 
             #region 新增與修改儲存紀錄
@@ -251,10 +180,7 @@ namespace MyProject.Web.Components.Views.Admins
             {
                 #region 新增紀錄
 
-                CurrentRecord.CreateAt = DateTime.Now;
-                CurrentRecord.UpdateAt = DateTime.Now;
-
-                await roleViewService.AddAsync(CurrentRecord);
+                await myUserService.AddAsync(CurrentRecord);
 
                 _ = notificationService.Open(new NotificationConfig()
                 {
@@ -266,12 +192,6 @@ namespace MyProject.Web.Components.Views.Admins
 
                 _ = messageService.SuccessAsync("新增成功");
 
-                //await modalService.InfoAsync(new ConfirmOptions()
-                //{
-                //    Title = "系統訊息",
-                //    Content = "新增成功",
-                //});
-
                 await ReloadAsync();
 
                 modalVisible = false;
@@ -281,14 +201,12 @@ namespace MyProject.Web.Components.Views.Admins
             else
             {
                 #region 修改紀錄
-                CurrentRecord.UpdateAt = DateTime.Now;
-
-                await roleViewService.UpdateAsync(CurrentRecord);
+                await myUserService.UpdateAsync(CurrentRecord);
 
                 _ = notificationService.Open(new NotificationConfig()
                 {
                     Message = "系統訊息",
-                    Description = "新增成功",
+                    Description = "修改成功",
                     NotificationType = NotificationType.Warning,
                     Placement = NotificationPlacement.BottomRight
                 });
@@ -312,7 +230,6 @@ namespace MyProject.Web.Components.Views.Admins
         {
             if (args.Key == "Enter")
             {
-                await Task.Delay(200);
                 await OnModalOKHandleAsync(new MouseEventArgs());
             }
             else if (args.Key == "Escape" || args.Key == "Esc")

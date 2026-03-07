@@ -1,0 +1,134 @@
+<div>
+    <div class="my-user-view-toolbar">
+        <div class="my-user-view-toolbar-left">
+            <Tooltip Title="新增">
+                <Button Type="ButtonType.Default" Class="my-user-view-icon-button"
+                        OnClick="@(async()=>await OnAddAsync(true))">
+                    ➕
+                </Button>
+            </Tooltip>
+            <Tooltip Title="重新整理">
+                <Button Type="ButtonType.Default" Class="my-user-view-icon-button"
+                        OnClick="@(async () => await OnRefreshAsync())">
+                    🔄
+                </Button>
+            </Tooltip>
+        </div>
+        <div class="my-user-view-toolbar-right">
+            <Select TItem="string" TItemValue="string" class="my-user-view-sort-field" @bind-Value="sortField">
+                <SelectOption Value="@nameof(MyUserAdapterModel.Account)">帳號</SelectOption>
+                <SelectOption Value="@nameof(MyUserAdapterModel.Name)">名稱</SelectOption>
+                <SelectOption Value="@nameof(MyUserAdapterModel.Email)">電子郵件</SelectOption>
+                <SelectOption Value="@nameof(MyUserAdapterModel.Status)">狀態</SelectOption>
+                <SelectOption Value="@nameof(MyUserAdapterModel.IsAdmin)">管理員</SelectOption>
+            </Select>
+            <Select TItem="string" TItemValue="string" class="my-user-view-sort-direction" @bind-Value="sortDirection">
+                <SelectOption Value='@("Ascending")'>升冪</SelectOption>
+                <SelectOption Value='@("Descending")'>降冪</SelectOption>
+            </Select>
+            <Tooltip Title="套用排序">
+                <Button Type="ButtonType.Default" Class="my-user-view-icon-button" OnClick="@(async () => await OnSortAsync())">
+                    ↕️
+                </Button>
+            </Tooltip>
+            <Input class="my-user-view-search-input" @bind-Value="searchText" Placeholder="請輸入搜尋關鍵字" />
+            @if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                <Tooltip Title="清空搜尋">
+                    <Button Type="ButtonType.Default" Class="my-user-view-icon-button" OnClick="@(async () => { searchText = string.Empty; _pageIndex = 1; await ReloadAsync(); })">
+                        ❌
+                    </Button>
+                </Tooltip>
+            }
+            <Tooltip Title="搜尋">
+                <Button Type="ButtonType.Default" Class="my-user-view-icon-button" OnClick="@(async () => await OnSearchAsync())">
+                    🔍
+                </Button>
+            </Tooltip>
+        </div>
+    </div>
+    <div class="my-user-view-table-wrap">
+        <Table @ref="table"
+               TItem="MyUserAdapterModel"
+               Class="my-user-view-table"
+               RemoteDataSource="true"
+               DataSource="@myUserAdapterModels"
+               OnChange=OnTableChange
+               @bind-PageIndex="_pageIndex"
+               @bind-PageSize="_pageSize"
+               @bind-Total=_total>
+            <Column TData="string" DataIndex="@nameof(MyUserAdapterModel.Account)" Title="帳號" />
+            <Column TData="string" DataIndex="@nameof(MyUserAdapterModel.Name)" Title="名稱" />
+            <Column TData="string" DataIndex="@nameof(MyUserAdapterModel.Email)" Title="電子郵件" />
+            <Column TData="bool" DataIndex="@nameof(MyUserAdapterModel.Status)" Title="狀態">
+                @(context.Status ? "啟用" : "停用")
+            </Column>
+            <Column TData="bool" DataIndex="@nameof(MyUserAdapterModel.IsAdmin)" Title="管理員">
+                @(context.IsAdmin ? "是" : "否")
+            </Column>
+            <ActionColumn Fixed="ColumnFixPlacement.Right" Title="操作">
+                <Space>
+                    <SpaceItem>
+                        <button class="btn-edit" title="修改"
+                                @onclick="@(async () => await OnEditAsync(@context))">
+                            <span class="icon-edit">✏️</span>
+                        </button>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <button class="btn-edit" title="刪除"
+                                @onclick="@(async () => await OnDeleteAsync(@context))">
+                            <span class="icon-edit">🗑️</span>
+                        </button>
+                    </SpaceItem>
+                </Space>
+            </ActionColumn>
+        </Table>
+    </div>
+</div>
+
+<Modal Title="@modalTitle"
+       Class="my-user-view-modal"
+       @bind-Visible="@modalVisible"
+       Keyboard="true"
+       OnOk="OnModalOKHandleAsync"
+       OnCancel="OnModalCancelHandleAsync">
+    <div class="">
+        <EditForm Model="@CurrentRecord" Context="editContext" @onkeydown="OnModalKeyDownAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <InputWatcher EditContextActionChanged="OnEditContestChanged" />
+
+            <AntDesign.Form TModel="MyUserAdapterModel" Model="@CurrentRecord" Layout="FormLayout.Vertical" Context="formContext">
+
+                <FormItem Label="帳號" Required>
+                    <Input @bind-Value="CurrentRecord.Account" Placeholder="請輸入帳號" />
+                    <ValidationMessage For="() => CurrentRecord.Account" />
+                </FormItem>
+
+                <FormItem Label="密碼" Required="@isNewRecordMode">
+                    <InputText type="password" class="ant-input" @bind-Value="CurrentRecord.Password"
+                               placeholder="@(isNewRecordMode ? "請輸入密碼" : "若不修改密碼請保留空白")" />
+                    <ValidationMessage For="() => CurrentRecord.Password" />
+                </FormItem>
+
+                <FormItem Label="名稱" Required>
+                    <Input @bind-Value="CurrentRecord.Name" Placeholder="請輸入名稱" />
+                    <ValidationMessage For="() => CurrentRecord.Name" />
+                </FormItem>
+
+                <FormItem Label="電子郵件">
+                    <Input @bind-Value="CurrentRecord.Email" Placeholder="請輸入電子郵件" />
+                </FormItem>
+
+                <FormItem Label="狀態">
+                    <Switch @bind-Value="CurrentRecord.Status" />
+                </FormItem>
+
+                <FormItem Label="管理員">
+                    <Switch @bind-Value="CurrentRecord.IsAdmin" />
+                </FormItem>
+
+            </AntDesign.Form>
+        </EditForm>
+    </div>
+</Modal>

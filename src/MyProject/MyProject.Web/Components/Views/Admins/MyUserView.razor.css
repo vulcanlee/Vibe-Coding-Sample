@@ -1,0 +1,34 @@
+.my-user-view-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.my-user-view-toolbar-left,
+.my-user-view-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.my-user-view-search-input {
+    width: 260px;
+}
+
+.my-user-view-sort-field {
+    width: 120px;
+}
+
+.my-user-view-sort-direction {
+    width: 120px;
+}
+
+.my-user-view-icon-button {
+    width: 36px;
+    padding: 0;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
